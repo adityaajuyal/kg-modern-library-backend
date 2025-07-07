@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
+import mockBooks from '../lib/mockData';
 import { bookSchema, bookUpdateSchema } from '../utils/validation';
 
 // Get all books
@@ -20,25 +21,63 @@ export const getAllBooks = async (req: Request, res: Response): Promise<void> =>
       ...(category && { category: category as string }),
     };
 
-    const books = await prisma.book.findMany({
-      where,
-      skip: (Number(page) - 1) * Number(limit),
-      take: Number(limit),
-      orderBy: { createdAt: 'desc' },
-    });
+    try {
+      const books = await prisma.book.findMany({
+        where,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+      });
 
-    const total = await prisma.book.count({ where });
+      const total = await prisma.book.count({ where });
 
-    res.json({
-      success: true,
-      data: books,
-      meta: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / Number(limit)),
-      },
-    });
+      res.json({
+        success: true,
+        data: books,
+        meta: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+      });
+    } catch (dbError) {
+      console.warn('Database not available, using mock data:', dbError);
+      
+      // Filter mock books based on search and category
+      let filteredBooks = mockBooks.filter(book => book.isActive);
+      
+      if (search) {
+        const searchTerm = (search as string).toLowerCase();
+        filteredBooks = filteredBooks.filter(book => 
+          book.title.toLowerCase().includes(searchTerm) ||
+          book.author.toLowerCase().includes(searchTerm) ||
+          book.isbn.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      if (category) {
+        filteredBooks = filteredBooks.filter(book => book.category === category);
+      }
+      
+      // Pagination
+      const total = filteredBooks.length;
+      const startIndex = (Number(page) - 1) * Number(limit);
+      const endIndex = startIndex + Number(limit);
+      const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
+      
+      res.json({
+        success: true,
+        data: paginatedBooks,
+        meta: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+        message: 'Using mock data - database not available'
+      });
+    }
   } catch (error) {
     console.error('Get books error:', error);
     res.status(500).json({
