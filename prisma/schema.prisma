@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  erp         String?  @unique // ERP number for students
+  rollNumber  String?  @unique // Roll number for students
+  role        Role     @default(USER)
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  issuedBooks IssueRecord[]
+  fines       Fine[]
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  isbn        String   @unique
+  publisher   String?
+  publishYear Int?
+  category    String
+  description String?
+  coverImage  String?
+  totalCopies Int      @default(1)
+  availableCopies Int  @default(1)
+  location    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  issueRecords IssueRecord[]
+  reservations Reservation[]
+
+  @@map("books")
+}
+
+model IssueRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  bookId      String
+  issueDate   DateTime @default(now())
+  dueDate     DateTime
+  returnDate  DateTime?
+  status      IssueStatus @default(ISSUED)
+  renewalCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  book        Book     @relation(fields: [bookId], references: [id])
+  fines       Fine[]
+
+  @@map("issue_records")
+}
+
+model Fine {
+  id          String   @id @default(cuid())
+  userId      String
+  issueRecordId String
+  amount      Float
+  reason      String
+  status      FineStatus @default(PENDING)
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  issueRecord IssueRecord @relation(fields: [issueRecordId], references: [id])
+
+  @@map("fines")
+}
+
+model Reservation {
+  id          String   @id @default(cuid())
+  userId      String
+  bookId      String
+  reservationDate DateTime @default(now())
+  expiryDate  DateTime
+  status      ReservationStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  book        Book     @relation(fields: [bookId], references: [id])
+
+  @@map("reservations")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("categories")
+}
+
+enum Role {
+  USER
+  ADMIN
+  LIBRARIAN
+}
+
+enum IssueStatus {
+  ISSUED
+  RETURNED
+  OVERDUE
+  LOST
+}
+
+enum FineStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  FULFILLED
+  EXPIRED
+  CANCELLED
+}

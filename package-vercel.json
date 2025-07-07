@@ -1,0 +1,15 @@
+{
+  "name": "kg-modern-backend",
+  "version": "1.0.0",
+  "description": "Backend API for KG Modern Library",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && prisma generate",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "vercel-build": "npm run build"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
