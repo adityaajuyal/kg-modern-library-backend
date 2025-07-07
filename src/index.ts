@@ -56,6 +56,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Debug endpoint to check environment variables
+app.get('/debug', (req, res) => {
+  res.status(200).json({
+    success: true,
+    cors_origin: process.env.CORS_ORIGIN,
+    node_env: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
